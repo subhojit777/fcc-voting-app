@@ -1,0 +1,29 @@
+{
+  "name": "fcc-voting-app",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "start": "node ./bin/www"
+  },
+  "dependencies": {
+    "body-parser": "~1.15.1",
+    "cookie-parser": "~1.4.3",
+    "debug": "~2.2.0",
+    "express": "~4.13.4",
+    "jade": "~1.11.0",
+    "morgan": "~1.7.0",
+    "serve-favicon": "~2.3.0"
+  },
+  "description": "https://www.freecodecamp.com/challenges/build-a-voting-app",
+  "main": "app.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/subhojit777/fcc-voting-app.git"
+  },
+  "author": "Subhojit Paul",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/subhojit777/fcc-voting-app/issues"
+  },
+  "homepage": "https://github.com/subhojit777/fcc-voting-app#readme"
+}
