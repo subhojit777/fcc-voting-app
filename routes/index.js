@@ -6,8 +6,9 @@ var passport = require('passport');
 router.get('/', function(req, res, next) {
   var test = req.isAuthenticated();
   res.render('index', {
-    'title': 'Express',
-    'loggedIn': req.user ? true : false,
+    'title': 'Home',
+    'siteName': 'Voting App',
+    'loggedIn': req.user ? true : false
   });
 });
 
