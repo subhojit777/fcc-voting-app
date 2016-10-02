@@ -25,8 +25,12 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.static(path.join(__dirname, 'node_modules/bootstrap/dist')));
 app.use(express.static(path.join(__dirname, 'node_modules/jquery/dist')));
 
+// Session will expire after 1 week.
 app.use(session({
-  secret: process.env.SESSION_SECRET
+  secret: process.env.SESSION_SECRET,
+  cookie: {
+    maxAge: 604800000
+  }
 }));
 
 app.use(passport.initialize());
