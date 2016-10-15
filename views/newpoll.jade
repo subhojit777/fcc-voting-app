@@ -1,0 +1,21 @@
+extends layout
+
+block content
+  h1 New Poll
+  // If authenticated, render new poll form.
+  // Otherwise, show an alert asking the user to login.
+  if loggedIn
+    if alert
+      div(class="alert alert-#{status}", role='alert')
+        p #{message}
+    form#newpoll(method='post')
+      .form-group
+        label Title
+        input(type='text', name='title', class='form-control')
+      .form-group
+        label Options (separated by line)
+        textarea(name='options', class='form-control')
+      input(type='submit', class='btn btn-primary', value='Save')
+  else
+    div(class="alert alert-#{status}", role='alert')
+      p #{message}

@@ -24,6 +24,9 @@ module.exports = {
   getUsersCollection: function() {
     return state.db.collection('users');
   },
+  getPollsCollection: function() {
+    return state.db.collection('polls');
+  },
   close: function() {
     state.db.close();
   }

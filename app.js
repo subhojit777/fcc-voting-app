@@ -5,6 +5,7 @@ var bodyParser = require('body-parser');
 var passport = require('passport');
 var TwitterStrategy = require('passport-twitter').Strategy;
 var session = require('express-session');
+var cookieParser = require('cookie-parser')
 var assert = require('assert');
 var mongodb = require('./db');
 require('dotenv').config();
@@ -21,6 +22,7 @@ app.set('view engine', 'jade');
 app.use(logger('dev'));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
+app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.static(path.join(__dirname, 'node_modules/bootstrap/dist')));
 app.use(express.static(path.join(__dirname, 'node_modules/jquery/dist')));
@@ -74,8 +76,10 @@ app.use(function(err, req, res, next) {
 mongodb.connect(process.env.MONGO_URI, function() {
   process.nextTick(function() {
     app.locals.db = mongodb.getDb();
-    var usersCollection = app.locals.users = mongodb.getUsersCollection();
+    app.locals.pollsCollection = mongodb.getPollsCollection();
+    var usersCollection = app.locals.usersCollection = mongodb.getUsersCollection();
 
+    // Passport twitter strategy.
     passport.use(new TwitterStrategy({
         consumerKey: process.env.TWITTER_CONSUMER_KEY,
         consumerSecret: process.env.TWITTER_CONSUMER_SECRET,
