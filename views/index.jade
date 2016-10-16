@@ -2,4 +2,9 @@ extends layout
 
 block content
   h1= title
-  p Welcome to #{title}
+  if polls.length
+    .list-group
+      each poll in polls
+        a.list-group-item(href="poll/#{poll._id}")= poll.title
+  else
+    p There are no polls :\

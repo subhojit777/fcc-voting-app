@@ -1,0 +1,12 @@
+extends layout
+
+block content
+  h3= poll.title
+  form#vote(method='post', action='/poll-submit')
+    input(type='hidden', name="poll-id", value="#{poll._id}")
+    each option in poll.options
+      .radio
+        label
+          input(type='radio', name='selection', value="#{option}")
+          | #{option}
+    input(type='submit', class='btn btn-primary', value='Submit')

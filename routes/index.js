@@ -2,12 +2,28 @@ var express = require('express');
 var router = express.Router();
 var passport = require('passport');
 var os = require('os');
+var ObjectId = require('mongodb').ObjectID;
 
 // Home page.
 router.get('/', function(req, res, next) {
-  res.render('index', {
-    'title': 'Home',
-    'loggedIn': req.user ? true : false
+  // Show all existing polls.
+  req.app.locals.pollsCollection.find().toArray(function(err, docs) {
+    res.render('index', {
+      'title': 'Polls',
+      'loggedIn': req.user ? true : false,
+      'polls': docs
+    });
+  });
+});
+
+// Poll information.
+router.get('/poll/:id', function(req, res, next) {
+  req.app.locals.pollsCollection.findOne(new ObjectId(req.params.id), function(err, doc) {
+    res.render('poll', {
+      'title': doc.title,
+      'poll': doc,
+      'loggedIn': req.user ? true : false
+    });
   });
 });
 
@@ -70,8 +86,7 @@ router.post('/newpoll', function(req, res, next) {
     }, function(err, result) {
       req.app.locals.pollsCollection.insertOne({
         title: req.body.title,
-        options: req.body.options.split(os.EOL),
-        created: new Date(),
+        options: req.body.options.split(os.EOL).map(function(c) { return c.trim(); }),
         user: result._id
       }, function(err, r) {
         res.render('newpoll', {
@@ -83,6 +98,50 @@ router.post('/newpoll', function(req, res, next) {
         });
       });
     });
+  }
+});
+
+// Submits vote for a poll.
+router.post('/poll-submit', function(req, res, next) {
+  // Validate whether any selection was made.
+  if (req.body.selection) {
+    // If user is not authenticated, we save the vote based on IP address.
+    // Otherwise, we save the vote based on the user.
+    if (req.user) {
+      req.app.locals.usersCollection.findOne({
+        uid: req.user
+      }, function(err, result) {
+        req.app.locals.votesCollection.insertOne({
+          voter: new ObjectId(result._id),
+          isAuthenticatedVoter: true,
+          poll: new ObjectId(req.body['poll-id'])
+        }, function(err, r) {
+          res.redirect('/');
+        });
+      });
+    }
+    else {
+      // Obtain IP address of the voter.
+      var ipAddr = req.headers["x-forwarded-for"];
+      if (ipAddr) {
+        var list = ipAddr.split(",");
+        ipAddr = list[list.length-1];
+      }
+      else {
+        ipAddr = req.connection.remoteAddress;
+      }
+
+      req.app.locals.votesCollection.insertOne({
+        voter: ipAddr,
+        isAuthenticatedVoter: false,
+        poll: new ObjectId(req.body['poll-id'])
+      }, function(err, r) {
+        res.redirect('/');
+      });
+    }
+  }
+  else {
+    // show alert
   }
 });
 

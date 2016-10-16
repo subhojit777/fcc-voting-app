@@ -77,6 +77,7 @@ mongodb.connect(process.env.MONGO_URI, function() {
   process.nextTick(function() {
     app.locals.db = mongodb.getDb();
     app.locals.pollsCollection = mongodb.getPollsCollection();
+    app.locals.votesCollection = mongodb.getVotesCollection();
     var usersCollection = app.locals.usersCollection = mongodb.getUsersCollection();
 
     // Passport twitter strategy.
