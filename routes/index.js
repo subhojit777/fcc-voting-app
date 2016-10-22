@@ -81,21 +81,17 @@ router.post('/newpoll', function(req, res, next) {
   }
   else {
     // Everything is alright, save poll to database.
-    req.app.locals.usersCollection.findOne({
-      uid: req.user
-    }, function(err, result) {
-      req.app.locals.pollsCollection.insertOne({
-        title: req.body.title,
-        options: req.body.options.split(os.EOL).map(function(c) { return c.trim(); }),
-        user: result._id
-      }, function(err, r) {
-        res.render('newpoll', {
-          'title': 'New Poll',
-          'loggedIn': true,
-          'alert': true,
-          'status': 'success',
-          'message': 'Poll created successfully'
-        });
+    req.app.locals.pollsCollection.insertOne({
+      title: req.body.title,
+      options: req.body.options.split(os.EOL).map(function(c) { return c.trim(); }),
+      user: req.user
+    }, function(err, r) {
+      res.render('newpoll', {
+        'title': 'New Poll',
+        'loggedIn': true,
+        'alert': true,
+        'status': 'success',
+        'message': 'Poll created successfully'
       });
     });
   }
@@ -105,19 +101,32 @@ router.post('/newpoll', function(req, res, next) {
 router.post('/poll-submit', function(req, res, next) {
   // Validate whether any selection was made.
   if (req.body.selection) {
+    if (req.user) {
+      req.app.locals.votesCollection.find({
+        isAuthenticatedVoter: true,
+        voter: new ObjectId(req.user)
+      }).toArray(function(err, docs) {
+        var hasVoted = docs.length ? true : false;
+      });
+    }
+    else {
+      req.app.locals.votesCollection.find({
+        isAuthenticatedVoter: false,
+        voter: ipAddr
+      }).toArray(function(err, docs) {
+        var hasVoted = docs.length ? true : false;
+      });
+    }
+
     // If user is not authenticated, we save the vote based on IP address.
     // Otherwise, we save the vote based on the user.
     if (req.user) {
-      req.app.locals.usersCollection.findOne({
-        uid: req.user
-      }, function(err, result) {
-        req.app.locals.votesCollection.insertOne({
-          voter: new ObjectId(result._id),
-          isAuthenticatedVoter: true,
-          poll: new ObjectId(req.body['poll-id'])
-        }, function(err, r) {
-          res.redirect('/');
-        });
+      req.app.locals.votesCollection.insertOne({
+        voter: req.user,
+        isAuthenticatedVoter: true,
+        poll: new ObjectId(req.body['poll-id'])
+      }, function(err, r) {
+        res.redirect('/');
       });
     }
     else {

@@ -122,7 +122,7 @@ mongodb.connect(process.env.MONGO_URI, function() {
         'uid': id
       },
       function(err, user) {
-        done(null, user.uid);
+        done(null, user._id);
       });
     });
   });
