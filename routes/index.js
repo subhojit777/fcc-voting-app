@@ -99,58 +99,84 @@ router.post('/newpoll', function(req, res, next) {
 
 // Submits vote for a poll.
 router.post('/poll-submit', function(req, res, next) {
+  // Obtain IP address of the voter.
+  function getIpAddress() {
+    var ipAddr = req.headers["x-forwarded-for"];
+
+    if (ipAddr) {
+      var list = ipAddr.split(",");
+      ipAddr = list[list.length-1];
+    }
+    else {
+      ipAddr = req.connection.remoteAddress;
+    }
+
+    return ipAddr;
+  }
+
   // Validate whether any selection was made.
   if (req.body.selection) {
     if (req.user) {
       req.app.locals.votesCollection.find({
         isAuthenticatedVoter: true,
-        voter: new ObjectId(req.user)
+        voter: req.user,
+        poll: new ObjectId(req.body['poll-id'])
       }).toArray(function(err, docs) {
+        if (err) return console.error(error);
         var hasVoted = docs.length ? true : false;
+        saveVote(hasVoted, true);
       });
     }
     else {
+      var ipAddress = getIpAddress();
+
       req.app.locals.votesCollection.find({
         isAuthenticatedVoter: false,
-        voter: ipAddr
+        voter: ipAddress,
+        poll: new ObjectId(req.body['poll-id'])
       }).toArray(function(err, docs) {
+        if (err) return console.error(error);
         var hasVoted = docs.length ? true : false;
+        saveVote(hasVoted, false, ipAddress);
       });
     }
 
-    // If user is not authenticated, we save the vote based on IP address.
-    // Otherwise, we save the vote based on the user.
-    if (req.user) {
-      req.app.locals.votesCollection.insertOne({
-        voter: req.user,
-        isAuthenticatedVoter: true,
-        poll: new ObjectId(req.body['poll-id'])
-      }, function(err, r) {
-        res.redirect('/');
-      });
-    }
-    else {
-      // Obtain IP address of the voter.
-      var ipAddr = req.headers["x-forwarded-for"];
-      if (ipAddr) {
-        var list = ipAddr.split(",");
-        ipAddr = list[list.length-1];
+    function saveVote(hasVoted, isAuthenticated, ipAddress) {
+      // If user is not authenticated, we save the vote based on IP address.
+      // Otherwise, we save the vote based on the user.
+      if (!hasVoted) {
+        if (isAuthenticated) {
+          req.app.locals.votesCollection.insertOne({
+            voter: req.user,
+            isAuthenticatedVoter: true,
+            poll: new ObjectId(req.body['poll-id'])
+          }, function(err, r) {
+            if (err) return console.error(error);
+            res.redirect('/');
+          });
+        }
+        else {
+          if (ipAddress === undefined) {
+            return console.error('For anonymous voting IP address is required');
+          }
+
+          req.app.locals.votesCollection.insertOne({
+            voter: ipAddress,
+            isAuthenticatedVoter: false,
+            poll: new ObjectId(req.body['poll-id'])
+          }, function(err, r) {
+            if (err) return console.error(error);
+            res.redirect('/');
+          });
+        }
       }
       else {
-        ipAddr = req.connection.remoteAddress;
+        // show alert that you have already voted
       }
-
-      req.app.locals.votesCollection.insertOne({
-        voter: ipAddr,
-        isAuthenticatedVoter: false,
-        poll: new ObjectId(req.body['poll-id'])
-      }, function(err, r) {
-        res.redirect('/');
-      });
     }
   }
   else {
-    // show alert
+    // show alert that you have not made any selection
   }
 });
 
