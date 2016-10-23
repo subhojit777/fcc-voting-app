@@ -2,7 +2,10 @@ extends layout
 
 block content
   h3= poll.title
-  form#vote(method='post', action='/poll-submit')
+  if alert
+    div(class="alert alert-#{status}", role='alert')
+      p #{message}
+  form#vote(method='post')
     input(type='hidden', name="poll-id", value="#{poll._id}")
     each option in poll.options
       .radio
