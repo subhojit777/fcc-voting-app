@@ -3,6 +3,7 @@ var router = express.Router();
 var passport = require('passport');
 var os = require('os');
 var ObjectId = require('mongodb').ObjectID;
+var helper = require('../helpers/helper');
 
 // Home page.
 router.get('/', function(req, res, next) {
@@ -46,7 +47,35 @@ router.route('/poll/:id')
         if (err) return next(err);
 
         var hasVoted = docs.length ? true : false;
-        saveVote(hasVoted, true);
+
+        if (hasVoted) {
+          res.render('poll', {
+            'title': req.session.poll.title,
+            'poll': req.session.poll,
+            'loggedIn': true,
+            'alert': true,
+            'status': 'danger',
+            'message': 'You have already voted'
+          });
+        }
+        else {
+          helper.saveVote({
+            isAuthenticated: true,
+            pollId: req.body['poll-id'],
+            voter: req.user
+          }, function(err) {
+            if (err) return next(err);
+
+            res.render('poll', {
+              'title': req.session.poll.title,
+              'poll': req.session.poll,
+              'loggedIn': true,
+              'alert': true,
+              'status': 'success',
+              'message': 'Vote saved successfully'
+            });
+          });
+        }
       });
     }
     else {
@@ -58,67 +87,36 @@ router.route('/poll/:id')
         if (err) return next(err);
 
         var hasVoted = docs.length ? true : false;
-        saveVote(hasVoted, false, req.ipAddress);
-      });
-    }
 
-    function saveVote(hasVoted, isAuthenticated, ipAddress) {
-      // If user is not authenticated, we save the vote based on IP address.
-      // Otherwise, we save the vote based on the user.
-      if (!hasVoted) {
-        if (isAuthenticated) {
-          req.app.locals.votesCollection.insertOne({
-            voter: req.user,
-            isAuthenticatedVoter: true,
-            poll: new ObjectId(req.body['poll-id'])
-          }, function(err, r) {
-            if (err) return next(err);
-
-            res.render('poll', {
-              'title': req.session.poll.title,
-              'poll': req.session.poll,
-              'loggedIn': isAuthenticated,
-              'alert': true,
-              'status': 'success',
-              'message': 'Vote saved successfully'
-            });
+        if (hasVoted) {
+          res.render('poll', {
+            'title': req.session.poll.title,
+            'poll': req.session.poll,
+            'loggedIn': false,
+            'alert': true,
+            'status': 'danger',
+            'message': 'You have already voted'
           });
         }
         else {
-          if (ipAddress === undefined) {
-            res.status(500).send('For anonymous voting IP address is required');
-            next();
-          }
-
-          req.app.locals.votesCollection.insertOne({
-            voter: ipAddress,
-            isAuthenticatedVoter: false,
-            poll: new ObjectId(req.body['poll-id'])
-          }, function(err, r) {
+          helper.saveVote({
+            isAuthenticated: false,
+            pollId: req.body['poll-id'],
+            ipAddress: req.ipAddress
+          }, function(err) {
             if (err) return next(err);
 
             res.render('poll', {
               'title': req.session.poll.title,
               'poll': req.session.poll,
-              'loggedIn': isAuthenticated,
+              'loggedIn': false,
               'alert': true,
               'status': 'success',
               'message': 'Vote saved successfully'
             });
           });
         }
-      }
-      else {
-        // User has already voted.
-        res.render('poll', {
-          'title': req.session.poll.title,
-          'poll': req.session.poll,
-          'loggedIn': isAuthenticated,
-          'alert': 'true',
-          'status': 'danger',
-          'message': 'You have already voted'
-        });
-      }
+      });
     }
   }
   else {
