@@ -38,86 +38,52 @@ router.route('/poll/:id')
 .post(function(req, res, next) {
   // Validate whether any selection was made.
   if (req.body.selection) {
-    if (req.user) {
-      req.app.locals.votesCollection.find({
-        isAuthenticatedVoter: true,
-        voter: req.user,
-        poll: new ObjectId(req.body['poll-id'])
-      }).toArray(function(err, docs) {
-        if (err) return next(err);
+    req.app.locals.votesCollection.find({
+      isAuthenticatedVoter: req.user ? true : false,
+      voter: req.user ? req.user : req.ipAddress,
+      poll: new ObjectId(req.body['poll-id'])
+    }).toArray(function(err, docs) {
+      if (err) return next(err);
 
-        var hasVoted = docs.length ? true : false;
+      // Prevent voting duplicacy.
+      if (docs.length) {
+        res.render('poll', {
+          'title': req.session.poll.title,
+          'poll': req.session.poll,
+          'loggedIn': req.user ? true : false,
+          'alert': true,
+          'status': 'danger',
+          'message': 'You have already voted'
+        });
+      }
+      else {
+        // Prepare params for `saveVote()`.
+        var params = {
+          isAuthenticated: req.user ? true : false,
+          pollId: req.body['poll-id'],
+        };
 
-        if (hasVoted) {
+        if (req.user) {
+          params.voter = req.user;
+        }
+        else {
+          params.ipAddress = req.ipAddress;
+        }
+
+        helper.saveVote(params, function(err) {
+          if (err) return next(err);
+
           res.render('poll', {
             'title': req.session.poll.title,
             'poll': req.session.poll,
-            'loggedIn': true,
+            'loggedIn': req.user ? true : false,
             'alert': true,
-            'status': 'danger',
-            'message': 'You have already voted'
+            'status': 'success',
+            'message': 'Vote saved successfully'
           });
-        }
-        else {
-          helper.saveVote({
-            isAuthenticated: true,
-            pollId: req.body['poll-id'],
-            voter: req.user
-          }, function(err) {
-            if (err) return next(err);
-
-            res.render('poll', {
-              'title': req.session.poll.title,
-              'poll': req.session.poll,
-              'loggedIn': true,
-              'alert': true,
-              'status': 'success',
-              'message': 'Vote saved successfully'
-            });
-          });
-        }
-      });
-    }
-    else {
-      req.app.locals.votesCollection.find({
-        isAuthenticatedVoter: false,
-        voter: req.ipAddress,
-        poll: new ObjectId(req.body['poll-id'])
-      }).toArray(function(err, docs) {
-        if (err) return next(err);
-
-        var hasVoted = docs.length ? true : false;
-
-        if (hasVoted) {
-          res.render('poll', {
-            'title': req.session.poll.title,
-            'poll': req.session.poll,
-            'loggedIn': false,
-            'alert': true,
-            'status': 'danger',
-            'message': 'You have already voted'
-          });
-        }
-        else {
-          helper.saveVote({
-            isAuthenticated: false,
-            pollId: req.body['poll-id'],
-            ipAddress: req.ipAddress
-          }, function(err) {
-            if (err) return next(err);
-
-            res.render('poll', {
-              'title': req.session.poll.title,
-              'poll': req.session.poll,
-              'loggedIn': false,
-              'alert': true,
-              'status': 'success',
-              'message': 'Vote saved successfully'
-            });
-          });
-        }
-      });
-    }
+        });
+      }
+    });
   }
   else {
     // User has not selected any option.
@@ -153,28 +119,26 @@ router.get('/logout', function(req, res, next){
   res.redirect('/');
 });
 
-// New Poll page.
-router.get('/newpoll', function(req, res, next) {
+// New Poll.
+router.route('/newpoll')
+.get(function(req, res, next) {
+  var params = {
+    title: 'New Poll',
+    loggedIn: req.user ? true : false,
+  };
+
   if (req.user) {
-    res.render('newpoll', {
-      'title': 'New Poll',
-      'loggedIn': true,
-      'alert': false,
-    });
+    params.alert = false;
   }
   else {
-    res.render('newpoll', {
-      'title': 'New Poll',
-      'loggedIn': false,
-      'alert': true,
-      'status': 'danger',
-      'message': 'You need to login before making a new poll'
-    });
+    params.alert = true;
+    params.status = 'danger';
+    params.message = 'You need to login before making a new poll'
   }
-});
 
-// Creates new poll.
-router.post('/newpoll', function(req, res, next) {
+  res.render('newpoll', params);
+})
+.post(function(req, res, next) {
   if (req.body.options.split(os.EOL).length < 2) {
     res.render('newpoll', {
       'title': 'New Poll',
