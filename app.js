@@ -8,6 +8,7 @@ var session = require('express-session');
 var cookieParser = require('cookie-parser')
 var assert = require('assert');
 var mongodb = require('./db');
+var middleware = require('./middlewares/middleware');
 require('dotenv').config();
 
 var routes = require('./routes/index');
@@ -26,6 +27,9 @@ app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.static(path.join(__dirname, 'node_modules/bootstrap/dist')));
 app.use(express.static(path.join(__dirname, 'node_modules/jquery/dist')));
+
+// Add custom middlewares.
+app.use(middleware.ipAddress);
 
 // Session will expire after 1 week.
 app.use(session({

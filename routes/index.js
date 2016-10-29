@@ -35,21 +35,6 @@ router.route('/poll/:id')
   });
 })
 .post(function(req, res, next) {
-  // Obtain IP address of the voter.
-  function getIpAddress() {
-    var ipAddr = req.headers["x-forwarded-for"];
-
-    if (ipAddr) {
-      var list = ipAddr.split(",");
-      ipAddr = list[list.length-1];
-    }
-    else {
-      ipAddr = req.connection.remoteAddress;
-    }
-
-    return ipAddr;
-  }
-
   // Validate whether any selection was made.
   if (req.body.selection) {
     if (req.user) {
@@ -65,17 +50,15 @@ router.route('/poll/:id')
       });
     }
     else {
-      var ipAddress = getIpAddress();
-
       req.app.locals.votesCollection.find({
         isAuthenticatedVoter: false,
-        voter: ipAddress,
+        voter: req.ipAddress,
         poll: new ObjectId(req.body['poll-id'])
       }).toArray(function(err, docs) {
         if (err) return next(err);
 
         var hasVoted = docs.length ? true : false;
-        saveVote(hasVoted, false, ipAddress);
+        saveVote(hasVoted, false, req.ipAddress);
       });
     }
 
