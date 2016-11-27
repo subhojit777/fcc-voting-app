@@ -178,4 +178,32 @@ router.route('/newpoll')
   }
 });
 
+// My Polls.
+router.route('/mypolls')
+.get(function(req, res, next) {
+  var params = {
+    title: 'My Polls',
+    loggedIn: req.user ? true : false,
+  };
+
+  if (req.user) {
+    params.alert = false;
+
+    // Fetch all polls of the current user.
+    req.app.locals.pollsCollection.find({'user': new ObjectId(req.user)}).toArray(function(err, docs) {
+      if (err) return next(err);
+
+      params.polls = docs;
+      res.render('mypolls', params);
+    });
+  }
+  else {
+    params.alert = true;
+    params.status = 'danger';
+    params.message = 'You need to login'
+
+    res.render('mypolls', params);
+  }
+});
+
 module.exports = router;

@@ -1,0 +1,17 @@
+extends layout
+
+block content
+  h1= title
+  // If authenticated, render the polls.
+  // Otherwise, show an alert asking the user to login.
+  if loggedIn
+    if polls.length
+      .list-group
+        each poll in polls
+          a.list-group-item(href="poll/#{poll._id}")= poll.title
+    else
+      p There are no polls :\
+  else
+    if alert
+      div(class="alert alert-#{status}", role='alert')
+        p #{message}
