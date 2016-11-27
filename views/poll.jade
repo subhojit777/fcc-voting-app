@@ -1,5 +1,8 @@
 extends layout
 
+block head
+  link(rel='stylesheet', href='/css/highcharts.css')
+
 block content
   h3= poll.title
   if alert
@@ -13,3 +16,13 @@ block content
           input(type='radio', name='selection', value="#{option}")
           | #{option}
     input(type='submit', class='btn btn-primary', value='Submit')
+  if votes.length
+    #chart-container
+  else
+    p.lead.text-center No votes made for this poll :\
+
+block script
+  script(src="/js/highcharts.js")
+  if votes.length
+    script(type="text/javascript") var votes = !{JSON.stringify(votes).replace(/<\//g, '<\\/')}
+    script(src="/scripts/graph.js")

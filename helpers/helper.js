@@ -21,7 +21,8 @@ exports.saveVote = function(params, callback) {
   mongodb.getVotesCollection().insertOne({
     voter: params.isAuthenticated ? params.voter : params.ipAddress,
     isAuthenticatedVoter: params.isAuthenticated,
-    poll: new ObjectId(params.pollId)
+    poll: new ObjectId(params.pollId),
+    vote: params.vote
   }, function(err, r) {
     if (err) callback(err);
 

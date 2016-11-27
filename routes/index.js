@@ -25,13 +25,19 @@ router.route('/poll/:id')
   req.app.locals.pollsCollection.findOne(new ObjectId(req.params.id), function(err, doc) {
     if (err) return next(err);
 
-    req.session.poll = doc;
+    req.app.locals.votesCollection.group(['vote'], {poll: new ObjectId(req.params.id)}, {'count': 0}, "function (obj, prev) { prev.count++; }", function(err, results) {
+      if (err) return next(err);
 
-    res.render('poll', {
-      'title': doc.title,
-      'poll': doc,
-      'loggedIn': req.user ? true : false,
-      'alert': false
+      req.session.poll = doc;
+      req.session.pollResults = results;
+
+      res.render('poll', {
+        'title': doc.title,
+        'poll': doc,
+        'loggedIn': req.user ? true : false,
+        'alert': false,
+        'votes': results,
+      });
     });
   });
 })
@@ -53,7 +59,8 @@ router.route('/poll/:id')
           'loggedIn': req.user ? true : false,
           'alert': true,
           'status': 'danger',
-          'message': 'You have already voted'
+          'message': 'You have already voted',
+          'votes': req.session.pollResults,
         });
       }
       else {
@@ -61,6 +68,7 @@ router.route('/poll/:id')
         var params = {
           isAuthenticated: req.user ? true : false,
           pollId: req.body['poll-id'],
+          vote: req.body['selection']
         };
 
         if (req.user) {
@@ -79,7 +87,8 @@ router.route('/poll/:id')
             'loggedIn': req.user ? true : false,
             'alert': true,
             'status': 'success',
-            'message': 'Vote saved successfully'
+            'message': 'Vote saved successfully',
+            'votes': req.session.pollResults,
           });
         });
       }
@@ -93,7 +102,8 @@ router.route('/poll/:id')
       'loggedIn': req.user ? true : false,
       'alert': true,
       'status': 'danger',
-      'message': 'No option selected'
+      'message': 'No option selected',
+      'votes': req.session.pollResults,
     });
   }
 });
